@@ -1,0 +1,4 @@
+must mention specific linter such as "//nolint:my-linter" instead of "//nolint" at /Users/andrewbrown/Projects/whynolint/examples/example.go:6:32
+must provide explanation for directive such as "//nolint // this is why" instead of "//nolint" at /Users/andrewbrown/Projects/whynolint/examples/example.go:6:32
+must provide explanation for directive such as "//nolint:my // this is why" instead of "//nolint:my" at /Users/andrewbrown/Projects/whynolint/examples/example.go:7:32
+lint directive "//  nolint:my" may not have more than one leading space at /Users/andrewbrown/Projects/whynolint/examples/example.go:8:32
