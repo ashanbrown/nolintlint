@@ -1,19 +1,18 @@
 # nolintlint
 
-makezero is a Go static analysis tool to find slice declarations that are not initialized with zero length and are later
-used with append.
+nolintlint is a Go static analysis tool to find ill-formed or insufficiently explained nolint directives for golangci
+(or any other linter)
 
 ## Installation
 
-    go get -u github.com/ashanbrown/makezero
+    go get -u github.com/ashanbrown/nolintlint
 
 ## Usage
 
-Similar to other Go static analysis tools (such as golint, go vet), makezero can be invoked with one or more filenames, directories, or packages named by its import path. makezero also supports the `...` wildcard.
-
-    nolintlint packages...
+    nolintlint [flags...] packages...
 
 ### Flags
+
 - **-set_exit_status** (default false) - Set exit status to 1 if any issues are found.
 - **-machine** (default false) - Always require `//nolint` instead of `// nolint`
 - **-specific** (default true) - Always require `//nolint:mylinter` instead of just `//nolint`
@@ -21,20 +20,25 @@ Similar to other Go static analysis tools (such as golint, go vet), makezero can
 
 ## Purpose
 
-To ensure that lint exceptions has explanations.
-Consider the case below:
+To ensure that lint exceptions has explanations.  Consider the case below:
 
 ```Go
 import md5 //nolint
 
-func run() {
-  md5.New()
+func hash(data []byte) []byte {
+  return md5.New(nil).Sum(data) //nolint
 }
 ```
 
+In the above case, the nolint directives are present but the user has no idea why this is being done or which linter
+is being surpressed (in this case gosec). 
+
+nolintlint can also identify cases where you may have written `//  nolint`.  Finally nolintlint, can enforce that you
+use the machine-readable nolint directive format `//nolint`.
+
 ## TODO
 
-Proposed that this should be part of golangci-lint itself.
+Propose that this should be part of golangci-lint itself.
 
 ## Contributing
 
