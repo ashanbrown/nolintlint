@@ -87,12 +87,12 @@ type DirectivePatterns struct {
 
 type Linter struct {
 	directives []string
-	mode       Needs
+	needs      Needs
 	patterns   []DirectivePatterns
 }
 
 // NewLinter creates a linter that enforces that the provided directives fulfill the provided requirements
-func NewLinter(directives []string, mode Needs) *Linter {
+func NewLinter(directives []string, needs Needs) *Linter {
 	patterns := make([]DirectivePatterns, 0, len(directives))
 
 	for _, d := range directives {
@@ -108,7 +108,7 @@ func NewLinter(directives []string, mode Needs) *Linter {
 	return &Linter{
 		patterns:   patterns,
 		directives: directives,
-		mode:       mode,
+		needs:       needs,
 	}
 }
 
@@ -137,13 +137,13 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 						directive = strings.TrimSpace(directive)
 					}
 
-					if (l.mode&NeedsMachine) != 0 && strings.HasPrefix(directiveWithOptionalLeadingSpace, " ") {
+					if (l.needs&NeedsMachine) != 0 && strings.HasPrefix(directiveWithOptionalLeadingSpace, " ") {
 						issues = append(issues, NotMachine{BaseIssue: base})
 					}
-					if (l.mode&NeedsSpecific) != 0 && !p.specific.MatchString(text) {
+					if (l.needs&NeedsSpecific) != 0 && !p.specific.MatchString(text) {
 						issues = append(issues, NotSpecific{BaseIssue: base})
 					}
-					if (l.mode&NeedsExplanation) != 0 && !p.explanation.MatchString(text) {
+					if (l.needs&NeedsExplanation) != 0 && !p.explanation.MatchString(text) {
 						issues = append(issues, NoExplanation{BaseIssue: base})
 					}
 				}
