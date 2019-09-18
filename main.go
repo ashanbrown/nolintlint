@@ -43,7 +43,7 @@ func main() {
 	}
 	linter := nolintlint.NewLinter(strings.Split(*nolint, ","), needs)
 
-	var issues []nolintlint.Issue
+	var issues []nolintlint.Issue //nolint:prealloc // don't know how many there will be
 	for _, p := range pkgs {
 		nodes := make([]ast.Node, 0, len(p.Syntax))
 		for _, n := range p.Syntax {
