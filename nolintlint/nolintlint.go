@@ -23,7 +23,7 @@ type MultipleLeadingSpaces struct {
 }
 
 func (i MultipleLeadingSpaces) Details() string {
-	return fmt.Sprintf(`lint directive "//%s" may not have more than one leading space`, i.directiveWithOptionalLeadingSpace)
+	return fmt.Sprintf("directive `//%s` may not have more than one leading space", i.directiveWithOptionalLeadingSpace)
 }
 
 func (i MultipleLeadingSpaces) String() string { return toString(i) }
@@ -34,7 +34,7 @@ type NotMachine struct {
 
 func (i NotMachine) Details() string {
 	expected := strings.TrimSpace(i.directiveWithOptionalLeadingSpace)
-	return fmt.Sprintf(`must use machine-style directive "//%s" instead of "//%s"`, expected, i.directiveWithOptionalLeadingSpace)
+	return fmt.Sprintf("use machine-style directive `//%s` instead of `//%s`", expected, i.directiveWithOptionalLeadingSpace)
 }
 
 func (i NotMachine) String() string { return toString(i) }
@@ -44,7 +44,7 @@ type NotSpecific struct {
 }
 
 func (i NotSpecific) Details() string {
-	return fmt.Sprintf(`must mention specific linter such as "//%s:my-linter" instead of "//%s"`, i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace)
+	return fmt.Sprintf("mention specific linter such as `//%s:my-linter` instead of `//%s`", i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace)
 }
 
 func (i NotSpecific) String() string { return toString(i) }
@@ -54,7 +54,7 @@ type NoExplanation struct {
 }
 
 func (i NoExplanation) Details() string {
-	return fmt.Sprintf(`must provide explanation for directive such as "//%s // this is why" instead of "//%s"`, i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace)
+	return fmt.Sprintf("provide explanation for directive such as `//%s // this is why` instead of `//%s`", i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace)
 }
 
 func (i NoExplanation) String() string { return toString(i) }

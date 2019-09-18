@@ -18,7 +18,7 @@ func foo() {
   bad() //nolint
   good() //nolint // this is ok
 	other() //nolintother
-}`, `must provide explanation for directive such as "//nolint // this is why" instead of "//nolint" at testing.go:5:9`)
+}`, "provide explanation for directive such as `//nolint // this is why` instead of `//nolint` at testing.go:5:9")
 	})
 
 	t.Run("when no specific linter is mentioned", func(t *testing.T) {
@@ -29,7 +29,7 @@ package bar
 func foo() {
   bad() //nolint:my-linter
   good() //nolint
-}`, `must mention specific linter such as "//nolint:my-linter" instead of "//nolint" at testing.go:6:10`)
+}`, "mention specific linter such as `//nolint:my-linter` instead of `//nolint` at testing.go:6:10")
 	})
 
 	t.Run("when machine-readable style isn't used", func(t *testing.T) {
@@ -40,7 +40,7 @@ package bar
 func foo() {
   bad() // nolint
   good() //nolint
-}`, `must use machine-style directive "//nolint" instead of "// nolint" at testing.go:5:9`)
+}`, "use machine-style directive `//nolint` instead of `// nolint` at testing.go:5:9")
 	})
 
 	t.Run("extra spaces in front of directive are reported", func(t *testing.T) {
@@ -51,7 +51,7 @@ package bar
 func foo() {
   bad() //  nolint
   good() // nolint
-}`, `lint directive "//  nolint" may not have more than one leading space at testing.go:5:9`)
+}`, "directive `//  nolint` may not have more than one leading space at testing.go:5:9")
 	})
 }
 
