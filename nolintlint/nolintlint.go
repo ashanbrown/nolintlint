@@ -14,40 +14,58 @@ type BaseIssue struct {
 	position                          token.Position
 }
 
+func (b BaseIssue) Position() token.Position {
+	return b.position
+}
+
 type MultipleLeadingSpaces struct {
 	BaseIssue
 }
 
-func (i MultipleLeadingSpaces) String() string {
-	return fmt.Sprintf(`lint directive "//%s" may not have more than one leading space at %s`, i.directiveWithOptionalLeadingSpace, i.position)
+func (i MultipleLeadingSpaces) Details() string {
+	return fmt.Sprintf(`lint directive "//%s" may not have more than one leading space`, i.directiveWithOptionalLeadingSpace)
 }
+
+func (i MultipleLeadingSpaces) String() string { return toString(i) }
 
 type NotMachine struct {
 	BaseIssue
 }
 
-func (i NotMachine) String() string {
+func (i NotMachine) Details() string {
 	expected := strings.TrimSpace(i.directiveWithOptionalLeadingSpace)
-	return fmt.Sprintf(`must use machine-style directive "//%s" instead of "//%s" at %s`, expected, i.directiveWithOptionalLeadingSpace, i.position)
+	return fmt.Sprintf(`must use machine-style directive "//%s" instead of "//%s"`, expected, i.directiveWithOptionalLeadingSpace)
 }
+
+func (i NotMachine) String() string { return toString(i) }
 
 type NotSpecific struct {
 	BaseIssue
 }
 
-func (i NotSpecific) String() string {
-	return fmt.Sprintf(`must mention specific linter such as "//%s:my-linter" instead of "//%s" at %s`, i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace, i.position)
+func (i NotSpecific) Details() string {
+	return fmt.Sprintf(`must mention specific linter such as "//%s:my-linter" instead of "//%s"`, i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace)
 }
+
+func (i NotSpecific) String() string { return toString(i) }
 
 type NoExplanation struct {
 	BaseIssue
 }
 
-func (i NoExplanation) String() string {
-	return fmt.Sprintf(`must provide explanation for directive such as "//%s // this is why" instead of "//%s" at %s`, i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace, i.position)
+func (i NoExplanation) Details() string {
+	return fmt.Sprintf(`must provide explanation for directive such as "//%s // this is why" instead of "//%s"`, i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace)
+}
+
+func (i NoExplanation) String() string { return toString(i) }
+
+func toString(i Issue) string {
+	return fmt.Sprintf("%s at %s", i.Details(), i.Position())
 }
 
 type Issue interface {
+	Details() string
+	Position() token.Position
 	String() string
 }
 
@@ -80,9 +98,9 @@ func NewLinter(directives []string, mode Needs) *Linter {
 	for _, d := range directives {
 		quoted := regexp.QuoteMeta(d)
 		patterns = append(patterns, DirectivePatterns{
-			directive:   regexp.MustCompile(fmt.Sprintf(`^\s*%s(:\S+?)?\b`, quoted)),
+			directive:   regexp.MustCompile(fmt.Sprintf(`^\s*%s(:\S+)?\b`, quoted)),
 			machine:     regexp.MustCompile(fmt.Sprintf(`^%s\b`, quoted)),
-			specific:    regexp.MustCompile(fmt.Sprintf(`^\s*%s:\S+\b`, quoted)),
+			specific:    regexp.MustCompile(fmt.Sprintf(`^\s*%s:\S+`, quoted)),
 			explanation: regexp.MustCompile(fmt.Sprintf(`^\s*%s(:\S+)?\s*//\s*\S*`, quoted)),
 		})
 	}
