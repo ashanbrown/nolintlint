@@ -18,7 +18,7 @@ func main() {
 	explain := flag.Bool("explain", true, "Require explanation for nolint directives")
 	specific := flag.Bool("specific", true, "Require specific linters for nolint directives")
 	machine := flag.Bool("machine", false, "Require machine-readable directives")
-	nolint := flag.String("nolint", "nolint", "comma-separated list of nolint directives")
+	directive := flag.String("nolint", "nolint", "comma-separated list of nolint directives")
 
 	flag.Parse()
 
@@ -41,7 +41,7 @@ func main() {
 	if *machine {
 		needs |= nolintlint.NeedsMachine
 	}
-	linter := nolintlint.NewLinter(strings.Split(*nolint, ","), needs)
+	linter := nolintlint.NewLinter(strings.Split(*directive, ","), needs)
 
 	var issues []nolintlint.Issue //nolint:prealloc // don't know how many there will be
 	for _, p := range pkgs {
