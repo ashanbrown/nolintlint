@@ -41,8 +41,8 @@ func hash(data []byte) []byte {
 }
 ```
 
-`nolintlint` can also identify cases where you may have written `//  nolint`.  Finally nolintlint, can enforce that you
-use the machine-readable nolint directive format `//nolint`.
+`nolintlint` can also identify cases where you may have written `//  nolint`.  Finally `nolintlint`, can alsoenforce that you
+use the machine-readable nolint directive format `//nolint` and that you mention what linter is being suppressed, as shown above when we write `//nolint:gosec`.
 
 ## TODO
 
