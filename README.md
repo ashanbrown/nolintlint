@@ -13,10 +13,10 @@ nolintlint is a Go static analysis tool to find ill-formed or insufficiently exp
 
 ### Flags
 
-- **-set_exit_status** (default false) - Set exit status to 1 if any issues are found.
-- **-machine** (default false) - Always require `//nolint` instead of `// nolint`
-- **-specific** (default true) - Always require `//nolint:mylinter` instead of just `//nolint`
-- **-explain** (default true) - Always require `//nolint // my explanation` instead of just `//nolint`
+- **-set_exit_status** (default `false`) - Set exit status to 1 if any issues are found.
+- **-machine** (default `false`) - Always require `//nolint` instead of `// nolint`
+- **-specific** (default `true`) - Always require `//nolint:mylinter` instead of just `//nolint`
+- **-explain** (default `true`) - Always require `//nolint // my explanation` instead of just `//nolint`
 
 ## Purpose
 
