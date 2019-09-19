@@ -1,7 +1,7 @@
 # nolintlint
 
 nolintlint is a Go static analysis tool to find ill-formed or insufficiently explained `// nolint` directives for golangci
-(or any other linter)
+(or any other linter, using th ) 
 
 ## Installation
 
@@ -17,6 +17,7 @@ nolintlint is a Go static analysis tool to find ill-formed or insufficiently exp
 - **-machine** (default `false`) - Always require `//nolint` instead of `// nolint`
 - **-specific** (default `true`) - Always require `//nolint:mylinter` instead of just `//nolint`
 - **-explain** (default `true`) - Always require `//nolint // my explanation` instead of just `//nolint`
+- **-nolint** (default `nolint`) - Provide an alternate commma-separated list of directives to check
 
 ## Purpose
 
