@@ -39,6 +39,7 @@ import "crypto/md5" //nolint:gosec // this is not used in a secure application
 func hash(data []byte) []byte {
 	return md5.New().Sum(data) //nolint:gosec // this result is not used in a secure application
 }
+```
 
 `nolintlint` can also identify cases where you may have written `//  nolint`.  Finally nolintlint, can enforce that you
 use the machine-readable nolint directive format `//nolint`.
