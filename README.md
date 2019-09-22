@@ -18,6 +18,7 @@ nolintlint is a Go static analysis tool to find ill-formed or insufficiently exp
 - **-specific** (default `true`) - Always require `//nolint:mylinter` instead of just `//nolint`
 - **-explain** (default `true`) - Always require `//nolint // my explanation` instead of just `//nolint`
 - **-directive** (default `nolint`) - Provide an alternate commma-separated list of directives to check
+- **-exclude** - A comma-separated list of linters that don't need explanations
 
 ## Purpose
 

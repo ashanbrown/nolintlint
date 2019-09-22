@@ -10,7 +10,7 @@ import (
 
 func TestNoLintLint(t *testing.T) {
 	t.Run("when no explanation is provided", func(t *testing.T) {
-		linter := NewLinter([]string{"nolint"}, NeedsExplanation)
+		linter, _ := NewLinter(OptionNeeds(NeedsExplanation))
 		expectIssues(t, linter, `
 package bar
 
@@ -21,8 +21,18 @@ func foo() {
 }`, "provide explanation for directive such as `//nolint // this is why` instead of `//nolint` at testing.go:5:9")
 	})
 
+	t.Run("when no explanation is needed for a specific linter", func(t *testing.T) {
+		linter, _ := NewLinter(OptionNeeds(NeedsExplanation), OptionExcludes([]string{"lll"}))
+		expectIssues(t, linter, `
+package bar
+
+func foo() {
+	thisIsAReallyLongLine() //nolint:lll
+}`)
+	})
+
 	t.Run("when no specific linter is mentioned", func(t *testing.T) {
-		linter := NewLinter([]string{"nolint"}, NeedsSpecific)
+		linter, _ := NewLinter(OptionNeeds(NeedsSpecific))
 		expectIssues(t, linter, `
 package bar
 
@@ -33,7 +43,7 @@ func foo() {
 	})
 
 	t.Run("when machine-readable style isn't used", func(t *testing.T) {
-		linter := NewLinter([]string{"nolint"}, NeedsMachine)
+		linter, _ := NewLinter(OptionNeeds(NeedsMachine))
 		expectIssues(t, linter, `
 package bar
 
@@ -44,7 +54,7 @@ func foo() {
 	})
 
 	t.Run("extra spaces in front of directive are reported", func(t *testing.T) {
-		linter := NewLinter([]string{"nolint"}, 0)
+		linter, _ := NewLinter()
 		expectIssues(t, linter, `
 package bar
 

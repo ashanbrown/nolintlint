@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ashanbrown/nolintlint/nolintlint"
+	"github.com/ashanbrown/nolintlint/v2/nolintlint"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -18,7 +18,8 @@ func main() {
 	explain := flag.Bool("explain", true, "Require explanation for nolint directives")
 	specific := flag.Bool("specific", true, "Require specific linters for nolint directives")
 	machine := flag.Bool("machine", false, "Require machine-readable directives")
-	directive := flag.String("nolint", "nolint", "comma-separated list of nolint directives")
+	exclude := flag.String("exclude", "", "Exclude the comma-separated linters from requiring explanations")
+	directive := flag.String("directive", "nolint", "comma-separated list of nolint directives")
 
 	flag.Parse()
 
@@ -41,7 +42,14 @@ func main() {
 	if *machine {
 		needs |= nolintlint.NeedsMachine
 	}
-	linter := nolintlint.NewLinter(strings.Split(*directive, ","), needs)
+	linter, err := nolintlint.NewLinter(
+		nolintlint.OptionNeeds(needs),
+		nolintlint.OptionDirectives(strings.Split(*directive, ",")),
+		nolintlint.OptionExcludes(strings.Split(*exclude, ",")),
+	)
+	if err != nil {
+		log.Fatalf("failed: %s", err)
+	}
 
 	var issues []nolintlint.Issue //nolint:prealloc // don't know how many there will be
 	for _, p := range pkgs {

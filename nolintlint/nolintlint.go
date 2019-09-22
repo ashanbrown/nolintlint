@@ -7,6 +7,8 @@ import (
 	"go/token"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type BaseIssue struct {
@@ -85,31 +87,63 @@ type DirectivePatterns struct {
 	explanation *regexp.Regexp
 }
 
-type Linter struct {
-	directives []string
-	needs      Needs
-	patterns   []DirectivePatterns
+//go:generate gobin -m -run github.com/launchdarkly/go-options config
+type config struct {
+	directives []string // describes lint directives to check
+	excludes   []string // lists individual linters that don't require explanations
+	needs      Needs    // indicates which linter checks to perform
 }
 
-// NewLinter creates a linter that enforces that the provided directives fulfill the provided requirements
-func NewLinter(directives []string, needs Needs) *Linter {
-	patterns := make([]DirectivePatterns, 0, len(directives))
+type Linter struct {
+	config
+	patterns      []DirectivePatterns
+	excludeByName map[string]bool
+}
 
-	for _, d := range directives {
+var defaultDirectives = []string{"nolint"}
+
+// NewLinter creates a linter that enforces that the provided directives fulfill the provided requirements
+func NewLinter(options ...Option) (*Linter, error) {
+	config, err := newConfig(append([]Option{OptionDirectives(defaultDirectives)}, options...)...)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse options")
+	}
+	patterns := make([]DirectivePatterns, 0, len(config.directives))
+	for _, d := range config.directives {
 		quoted := regexp.QuoteMeta(d)
+		directive, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?\b`, quoted))
+		if err != nil {
+			return nil, errors.Wrapf(err, `unable to create directive pattern for "%s"`, d)
+		}
+		machine, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?\b`, quoted))
+		if err != nil {
+			return nil, errors.Wrapf(err, `unable to machine create directive pattern for "%s"`, d)
+		}
+		specific, err := regexp.Compile(fmt.Sprintf(`^\s*%s:(\S+)`, quoted))
+		if err != nil {
+			return nil, errors.Wrapf(err, `unable to specific create directive pattern for "%s"`, d)
+		}
+		explanation, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?\s*//\s*\S*`, quoted))
+		if err != nil {
+			return nil, errors.Wrapf(err, `unable to specific create explanation pattern for "%s"`, d)
+		}
 		patterns = append(patterns, DirectivePatterns{
-			directive:   regexp.MustCompile(fmt.Sprintf(`^\s*%s(:\S+)?\b`, quoted)),
-			machine:     regexp.MustCompile(fmt.Sprintf(`^%s\b`, quoted)),
-			specific:    regexp.MustCompile(fmt.Sprintf(`^\s*%s:\S+`, quoted)),
-			explanation: regexp.MustCompile(fmt.Sprintf(`^\s*%s(:\S+)?\s*//\s*\S*`, quoted)),
+			directive:   directive,
+			machine:     machine,
+			specific:    specific,
+			explanation: explanation,
 		})
+	}
+	excludeByName := make(map[string]bool)
+	for _, e := range config.excludes {
+		excludeByName[e] = true
 	}
 
 	return &Linter{
-		patterns:   patterns,
-		directives: directives,
-		needs:      needs,
-	}
+		config:        config,
+		patterns:      patterns,
+		excludeByName: excludeByName,
+	}, nil
 }
 
 var leadingSpacePattern = regexp.MustCompile(`^//(\s*)`)
@@ -153,7 +187,22 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 						issues = append(issues, NotSpecific{BaseIssue: base})
 					}
 					if (l.needs&NeedsExplanation) != 0 && !p.explanation.MatchString(text) {
-						issues = append(issues, NoExplanation{BaseIssue: base})
+						matches := p.specific.FindStringSubmatch(text)
+						skip := false
+						// check if we are excluding all of the mentioned linters
+						if len(matches) > 0 {
+							skip = true
+							linters := strings.Split(matches[1], ",")
+							for _, ll := range linters {
+								if !l.excludeByName[ll] {
+									skip = false
+									break
+								}
+							}
+						}
+						if !skip {
+							issues = append(issues, NoExplanation{BaseIssue: base})
+						}
 					}
 				}
 			}
