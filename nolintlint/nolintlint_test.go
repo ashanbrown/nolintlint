@@ -45,7 +45,10 @@ package bar
 func foo() {
   good() //nolint:my-linter
   bad() //nolint
-}`, "directive `//nolint` should mention specific linter such as `//nolint:my-linter` at testing.go:6:9")
+  bad() // nolint // because
+}`,
+			"directive `//nolint` should mention specific linter such as `//nolint:my-linter` at testing.go:6:9",
+			"directive `// nolint // because` should mention specific linter such as `// nolint:my-linter` at testing.go:7:9")
 	})
 
 	t.Run("when machine-readable style isn't used", func(t *testing.T) {
