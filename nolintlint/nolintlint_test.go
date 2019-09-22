@@ -16,9 +16,15 @@ package bar
 
 func foo() {
   bad() //nolint
+  bad() //nolint //
+  bad() //nolint // 
   good() //nolint // this is ok
 	other() //nolintother
-}`, "provide explanation for directive such as `//nolint // this is why` instead of `//nolint` at testing.go:5:9")
+}`,
+			"directive `//nolint` should provide explanation such as `//nolint // this is why` at testing.go:5:9",
+			"directive `//nolint //` should provide explanation such as `//nolint // this is why` at testing.go:6:9",
+			"directive `//nolint // ` should provide explanation such as `//nolint // this is why` at testing.go:7:9",
+		)
 	})
 
 	t.Run("when no explanation is needed for a specific linter", func(t *testing.T) {
@@ -37,9 +43,9 @@ func foo() {
 package bar
 
 func foo() {
-  bad() //nolint:my-linter
-  good() //nolint
-}`, "mention specific linter such as `//nolint:my-linter` instead of `//nolint` at testing.go:6:10")
+  good() //nolint:my-linter
+  bad() //nolint
+}`, "directive `//nolint` should mention specific linter such as `//nolint:my-linter` at testing.go:6:9")
 	})
 
 	t.Run("when machine-readable style isn't used", func(t *testing.T) {
@@ -50,7 +56,7 @@ package bar
 func foo() {
   bad() // nolint
   good() //nolint
-}`, "use machine-style directive `//nolint` instead of `// nolint` at testing.go:5:9")
+}`, "directive `// nolint` should be written without leading space as `//nolint` at testing.go:5:9")
 	})
 
 	t.Run("extra spaces in front of directive are reported", func(t *testing.T) {
@@ -61,19 +67,24 @@ package bar
 func foo() {
   bad() //  nolint
   good() // nolint
-}`, "directive `//  nolint` may not have more than one leading space at testing.go:5:9")
+}`, "directive `//  nolint` should not have more than one leading space at testing.go:5:9")
 	})
 
-	t.Run("extra spaces between directive and linter", func(t *testing.T) {
+	t.Run("badly formatted linter list", func(t *testing.T) {
 		linter, _ := NewLinter()
 		expectIssues(t, linter, `
 package bar
 
 func foo() {
-  good() // nolint:something
-  bad()  // nolint: something
-}`, "indicate specific linter(s) as `// nolint:something` instead of `// nolint: something` at testing.go:6:10")
+  good() // nolint:linter1,linter2
+  bad()  // nolint:linter1 linter2
+  bad()  // nolint: linter1,linter2
+}`,
+			"directive `// nolint:linter1 linter2` should match `// nolint[:<comma-separated-linters>] [// <explanation>]` at testing.go:6:10",  //nolint:lll // this is a string
+			"directive `// nolint: linter1,linter2` should match `// nolint[:<comma-separated-linters>] [// <explanation>]` at testing.go:7:10", //nolint:lll // this is a string
+		)
 	})
+
 }
 
 func expectIssues(t *testing.T, linter *Linter, contents string, issues ...string) {

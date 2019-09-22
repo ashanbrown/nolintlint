@@ -1,5 +1,13 @@
 repos:
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.17.1
+    rev: v1.18.0
     hooks:
       - id: golangci-lint
+
+  - repo: local
+    hooks:
+      - id: nolintlint
+        name: nolintlint
+        language: system
+        entry: go run . ./...
+        pass_filenames: false

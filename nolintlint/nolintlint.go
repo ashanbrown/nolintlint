@@ -7,11 +7,13 @@ import (
 	"go/token"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/pkg/errors"
 )
 
 type BaseIssue struct {
+	fullDirective                     string
 	directiveWithOptionalLeadingSpace string
 	position                          token.Position
 }
@@ -20,23 +22,24 @@ func (b BaseIssue) Position() token.Position {
 	return b.position
 }
 
-type MultipleLeadingSpaces struct {
+type ExtraLeadingSpace struct {
 	BaseIssue
 }
 
-func (i MultipleLeadingSpaces) Details() string {
-	return fmt.Sprintf("directive `//%s` may not have more than one leading space", i.directiveWithOptionalLeadingSpace)
+func (i ExtraLeadingSpace) Details() string {
+	return fmt.Sprintf("directive `%s` should not have more than one leading space", i.fullDirective)
 }
 
-func (i MultipleLeadingSpaces) String() string { return toString(i) }
+func (i ExtraLeadingSpace) String() string { return toString(i) }
 
 type NotMachine struct {
 	BaseIssue
 }
 
 func (i NotMachine) Details() string {
-	expected := strings.TrimSpace(i.directiveWithOptionalLeadingSpace)
-	return fmt.Sprintf("use machine-style directive `//%s` instead of `//%s`", expected, i.directiveWithOptionalLeadingSpace)
+	expected := i.fullDirective[:2] + strings.TrimLeftFunc(i.fullDirective[2:], unicode.IsSpace)
+	return fmt.Sprintf("directive `%s` should be written without leading space as `%s`",
+		i.fullDirective, expected)
 }
 
 func (i NotMachine) String() string { return toString(i) }
@@ -46,30 +49,32 @@ type NotSpecific struct {
 }
 
 func (i NotSpecific) Details() string {
-	return fmt.Sprintf("mention specific linter such as `//%s:my-linter` instead of `//%s`", i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace)
+	return fmt.Sprintf("directive `%s` should mention specific linter such as `//%s:my-linter`",
+		i.fullDirective, i.directiveWithOptionalLeadingSpace)
 }
 
 func (i NotSpecific) String() string { return toString(i) }
 
-type BadSpecific struct {
+type ParseError struct {
 	BaseIssue
-	specificLinters string
 }
 
-func (i BadSpecific) Details() string {
-	return fmt.Sprintf("indicate specific linter(s) as `//%s:%s` instead of `//%s:%s`",
-		i.directiveWithOptionalLeadingSpace, strings.TrimSpace(i.specificLinters),
-		i.directiveWithOptionalLeadingSpace, i.specificLinters)
+func (i ParseError) Details() string {
+	return fmt.Sprintf("directive `%s` should match `//%s[:<comma-separated-linters>] [// <explanation>]`",
+		i.fullDirective,
+		i.directiveWithOptionalLeadingSpace)
 }
 
-func (i BadSpecific) String() string { return toString(i) }
+func (i ParseError) String() string { return toString(i) }
 
 type NoExplanation struct {
 	BaseIssue
+	fullDirectiveWithoutExplanation string
 }
 
 func (i NoExplanation) Details() string {
-	return fmt.Sprintf("provide explanation for directive such as `//%s // this is why` instead of `//%s`", i.directiveWithOptionalLeadingSpace, i.directiveWithOptionalLeadingSpace)
+	return fmt.Sprintf("directive `%s` should provide explanation such as `%s // this is why`",
+		i.fullDirective, i.fullDirectiveWithoutExplanation)
 }
 
 func (i NoExplanation) String() string { return toString(i) }
@@ -94,9 +99,8 @@ const (
 )
 
 type DirectivePatterns struct {
-	directive   *regexp.Regexp
-	specific    *regexp.Regexp
-	explanation *regexp.Regexp
+	directive *regexp.Regexp
+	full      *regexp.Regexp
 }
 
 //go:generate gobin -m -run github.com/launchdarkly/go-options config
@@ -108,8 +112,8 @@ type config struct {
 
 type Linter struct {
 	config
-	patterns      []DirectivePatterns
-	excludeByName map[string]bool
+	patterns        []DirectivePatterns
+	excludeByLinter map[string]bool
 }
 
 var defaultDirectives = []string{"nolint"}
@@ -123,22 +127,17 @@ func NewLinter(options ...Option) (*Linter, error) {
 	patterns := make([]DirectivePatterns, 0, len(config.directives))
 	for _, d := range config.directives {
 		quoted := regexp.QuoteMeta(d)
-		directive, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?\b`, quoted))
+		directive, err := regexp.Compile(fmt.Sprintf(`^\s*(%s)(:\S+)?\b`, quoted))
 		if err != nil {
 			return nil, errors.Wrapf(err, `unable to create directive pattern for "%s"`, d)
 		}
-		specific, err := regexp.Compile(fmt.Sprintf(`^\s*%s:(\s*\S+)`, quoted))
+		full, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?\s*(//.*)?\s*\n$`, quoted))
 		if err != nil {
-			return nil, errors.Wrapf(err, `unable to specific create directive pattern for "%s"`, d)
-		}
-		explanation, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?.*?//\s*\S*`, quoted))
-		if err != nil {
-			return nil, errors.Wrapf(err, `unable to specific create explanation pattern for "%s"`, d)
+			return nil, errors.Wrapf(err, `unable to specific create full pattern for "%s"`, d)
 		}
 		patterns = append(patterns, DirectivePatterns{
-			directive:   directive,
-			specific:    specific,
-			explanation: explanation,
+			directive: directive,
+			full:      full,
 		})
 	}
 	excludeByName := make(map[string]bool)
@@ -147,13 +146,14 @@ func NewLinter(options ...Option) (*Linter, error) {
 	}
 
 	return &Linter{
-		config:        config,
-		patterns:      patterns,
-		excludeByName: excludeByName,
+		config:          config,
+		patterns:        patterns,
+		excludeByLinter: excludeByName,
 	}, nil
 }
 
 var leadingSpacePattern = regexp.MustCompile(`^//(\s*)`)
+var trailingBlankExplanation = regexp.MustCompile(`\s*(//\s*)?$`)
 
 func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 	var issues []Issue
@@ -162,59 +162,79 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 			for _, c := range file.Comments {
 				for _, p := range l.patterns {
 					text := c.Text()
-					directive := p.directive.FindString(text)
-					if directive == "" {
-						continue
-					}
-					// check for a space between the "//" and the directive
-					matches := leadingSpacePattern.FindStringSubmatch(c.List[0].Text)
+					matches := p.directive.FindStringSubmatch(text)
 					if len(matches) == 0 {
 						continue
 					}
-					leadingSpace := matches[1]
+					directive := matches[1]
+
+					// check for a space between the "//" and the directive
+					leadingSpaceMatches := leadingSpacePattern.FindStringSubmatch(c.List[0].Text) // c.Text() doesn't have all leading space
+					if len(leadingSpaceMatches) == 0 {
+						continue
+					}
+					leadingSpace := leadingSpaceMatches[1]
+
 					directiveWithOptionalLeadingSpace := directive
 					if len(leadingSpace) > 0 {
 						directiveWithOptionalLeadingSpace = " " + directive
 					}
+
 					base := BaseIssue{
+						fullDirective:                     c.List[0].Text,
 						directiveWithOptionalLeadingSpace: directiveWithOptionalLeadingSpace,
 						position:                          fset.Position(c.Pos()),
 					}
 
 					// check for, report and eliminate leading spaces so we can check for other issues
-					if strings.TrimSpace(directive) != directive {
-						issues = append(issues, MultipleLeadingSpaces{BaseIssue: base})
-						directive = strings.TrimSpace(directive)
+					if leadingSpace != "" && leadingSpace != " " {
+						issues = append(issues, ExtraLeadingSpace{
+							BaseIssue: base,
+						})
 					}
 
 					if (l.needs&NeedsMachine) != 0 && strings.HasPrefix(directiveWithOptionalLeadingSpace, " ") {
 						issues = append(issues, NotMachine{BaseIssue: base})
 					}
 
-					if matches := p.specific.FindStringSubmatch(text); len(matches) == 0 {
-						if (l.needs & NeedsSpecific) != 0 {
-							issues = append(issues, NotSpecific{BaseIssue: base})
-						}
-					} else if matches[1] != strings.TrimSpace(matches[1]) {
-						issues = append(issues, BadSpecific{BaseIssue: base, specificLinters: matches[1]})
+					fullMatches := p.full.FindStringSubmatch(text)
+					if !p.full.MatchString(text) {
+						issues = append(issues, ParseError{BaseIssue: base})
+						continue
 					}
-
-					if (l.needs&NeedsExplanation) != 0 && !p.explanation.MatchString(text) {
-						matches := p.specific.FindStringSubmatch(text)
-						skip := false
-						// check if we are excluding all of the mentioned linters
-						if len(matches) > 0 {
-							skip = true
-							linters := strings.Split(matches[1], ",")
-							for _, ll := range linters {
-								if !l.excludeByName[ll] {
-									skip = false
-									break
-								}
+					lintersText, explanation := fullMatches[1], fullMatches[2]
+					var linters []string
+					if len(lintersText) > 0 {
+						lls := strings.Split(lintersText[1:], ",")
+						linters = make([]string, 0, len(lls))
+						for _, ll := range lls {
+							if ll != "" {
+								linters = append(linters, ll)
+								break
 							}
 						}
-						if !skip {
-							issues = append(issues, NoExplanation{BaseIssue: base})
+					}
+					if (l.needs & NeedsSpecific) != 0 {
+						if len(linters) == 0 {
+							issues = append(issues, NotSpecific{BaseIssue: base})
+						}
+					}
+
+					if (l.needs&NeedsExplanation) != 0 && (explanation == "" || strings.TrimSpace(explanation) == "//") {
+						needsExplanation := len(linters) == 0 // if no linters are mentioned, we must have explanation
+						// otherwise, check if we are excluding all of the mentioned linters
+						for _, ll := range linters {
+							if !l.excludeByLinter[ll] { // if a linter does require explanation
+								needsExplanation = true
+								break
+							}
+						}
+						if needsExplanation {
+							fullDirectiveWithoutExplanation := trailingBlankExplanation.ReplaceAllString(c.List[0].Text, "")
+							issues = append(issues, NoExplanation{
+								BaseIssue:                       base,
+								fullDirectiveWithoutExplanation: fullDirectiveWithoutExplanation,
+							})
 						}
 					}
 				}

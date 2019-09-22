@@ -1,5 +1,6 @@
-mention specific linter such as `//nolint:my-linter` instead of `//nolint` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:6:37
-provide explanation for directive such as `//nolint // this is why` instead of `//nolint` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:6:37
-provide explanation for directive such as `//nolint:my-linter // this is why` instead of `//nolint:my-linter` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:7:37
-directive `//  nolint:my-linter` may not have more than one leading space at /Users/andrewbrown/Projects/nolintlint/examples/example.go:8:37
-indicate specific linter(s) as `// nolint:my-linter` instead of `// nolint: my-linter` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:9:37
+directive `//nolint` should mention specific linter such as `//nolint:my-linter` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:6:37
+directive `//nolint` should provide explanation such as `//nolint // this is why` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:6:37
+directive `//nolint:my-linter` should provide explanation such as `//nolint:my-linter // this is why` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:7:37
+directive `//nolint:my-linter //` should provide explanation such as `//nolint:my-linter // this is why` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:8:37
+directive `//  nolint:my-linter // because` should not have more than one leading space at /Users/andrewbrown/Projects/nolintlint/examples/example.go:9:37
+directive `// nolint: my-linter // because` should match `// nolint[:<comma-separated-linters>] [// <explanation>]` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:10:37
