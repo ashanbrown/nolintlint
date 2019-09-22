@@ -1,4 +1,5 @@
-mention specific linter such as `//nolint:my-linter` instead of `//nolint` at CURDIR/examples/example.go:6:32
-provide explanation for directive such as `//nolint // this is why` instead of `//nolint` at CURDIR/examples/example.go:6:32
-provide explanation for directive such as `//nolint:my-linter // this is why` instead of `//nolint:my-linter` at CURDIR/examples/example.go:7:32
-directive `//  nolint:my-linter` may not have more than one leading space at CURDIR/examples/example.go:8:32
+mention specific linter such as `//nolint:my-linter` instead of `//nolint` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:6:37
+provide explanation for directive such as `//nolint // this is why` instead of `//nolint` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:6:37
+provide explanation for directive such as `//nolint:my-linter // this is why` instead of `//nolint:my-linter` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:7:37
+directive `//  nolint:my-linter` may not have more than one leading space at /Users/andrewbrown/Projects/nolintlint/examples/example.go:8:37
+indicate specific linter(s) as `// nolint:my-linter` instead of `// nolint: my-linter` at /Users/andrewbrown/Projects/nolintlint/examples/example.go:9:37

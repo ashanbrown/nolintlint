@@ -63,6 +63,17 @@ func foo() {
   good() // nolint
 }`, "directive `//  nolint` may not have more than one leading space at testing.go:5:9")
 	})
+
+	t.Run("extra spaces between directive and linter", func(t *testing.T) {
+		linter, _ := NewLinter()
+		expectIssues(t, linter, `
+package bar
+
+func foo() {
+  good() // nolint:something
+  bad()  // nolint: something
+}`, "indicate specific linter(s) as `// nolint:something` instead of `// nolint: something` at testing.go:6:10")
+	})
 }
 
 func expectIssues(t *testing.T, linter *Linter, contents string, issues ...string) {

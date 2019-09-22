@@ -51,6 +51,19 @@ func (i NotSpecific) Details() string {
 
 func (i NotSpecific) String() string { return toString(i) }
 
+type BadSpecific struct {
+	BaseIssue
+	specificLinters string
+}
+
+func (i BadSpecific) Details() string {
+	return fmt.Sprintf("indicate specific linter(s) as `//%s:%s` instead of `//%s:%s`",
+		i.directiveWithOptionalLeadingSpace, strings.TrimSpace(i.specificLinters),
+		i.directiveWithOptionalLeadingSpace, i.specificLinters)
+}
+
+func (i BadSpecific) String() string { return toString(i) }
+
 type NoExplanation struct {
 	BaseIssue
 }
@@ -114,11 +127,11 @@ func NewLinter(options ...Option) (*Linter, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, `unable to create directive pattern for "%s"`, d)
 		}
-		specific, err := regexp.Compile(fmt.Sprintf(`^\s*%s:(\S+)`, quoted))
+		specific, err := regexp.Compile(fmt.Sprintf(`^\s*%s:(\s*\S+)`, quoted))
 		if err != nil {
 			return nil, errors.Wrapf(err, `unable to specific create directive pattern for "%s"`, d)
 		}
-		explanation, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?\s*//\s*\S*`, quoted))
+		explanation, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?.*?//\s*\S*`, quoted))
 		if err != nil {
 			return nil, errors.Wrapf(err, `unable to specific create explanation pattern for "%s"`, d)
 		}
@@ -177,9 +190,15 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 					if (l.needs&NeedsMachine) != 0 && strings.HasPrefix(directiveWithOptionalLeadingSpace, " ") {
 						issues = append(issues, NotMachine{BaseIssue: base})
 					}
-					if (l.needs&NeedsSpecific) != 0 && !p.specific.MatchString(text) {
-						issues = append(issues, NotSpecific{BaseIssue: base})
+
+					if matches := p.specific.FindStringSubmatch(text); len(matches) == 0 {
+						if (l.needs & NeedsSpecific) != 0 {
+							issues = append(issues, NotSpecific{BaseIssue: base})
+						}
+					} else if matches[1] != strings.TrimSpace(matches[1]) {
+						issues = append(issues, BadSpecific{BaseIssue: base, specificLinters: matches[1]})
 					}
+
 					if (l.needs&NeedsExplanation) != 0 && !p.explanation.MatchString(text) {
 						matches := p.specific.FindStringSubmatch(text)
 						skip := false
