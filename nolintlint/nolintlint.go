@@ -108,9 +108,11 @@ func NewLinter(directives []string, needs Needs) *Linter {
 	return &Linter{
 		patterns:   patterns,
 		directives: directives,
-		needs:       needs,
+		needs:      needs,
 	}
 }
+
+var leadingSpacePattern = regexp.MustCompile(`^//(\s*)`)
 
 func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 	var issues []Issue
@@ -124,8 +126,15 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 						continue
 					}
 					// check for a space between the "//" and the directive
-					leadingSpaces := int(c.List[0].End()) - int(c.List[0].Slash) - len(c.Text()) - 1 // will only be 0 or 1
-					directiveWithOptionalLeadingSpace := strings.Repeat(" ", leadingSpaces) + directive
+					matches := leadingSpacePattern.FindStringSubmatch(c.List[0].Text)
+					if len(matches) == 0 {
+						continue
+					}
+					leadingSpace := matches[1]
+					directiveWithOptionalLeadingSpace := directive
+					if len(leadingSpace) > 0 {
+						directiveWithOptionalLeadingSpace = " " + directive
+					}
 					base := BaseIssue{
 						directiveWithOptionalLeadingSpace: directiveWithOptionalLeadingSpace,
 						position:                          fset.Position(c.Pos()),
