@@ -7,8 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ashanbrown/nolintlint/v2/nolintlint"
 	"golang.org/x/tools/go/packages"
+
+	"github.com/ashanbrown/nolintlint/v2/nolintlint"
 )
 
 func main() {

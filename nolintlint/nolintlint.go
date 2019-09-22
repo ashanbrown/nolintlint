@@ -82,7 +82,6 @@ const (
 
 type DirectivePatterns struct {
 	directive   *regexp.Regexp
-	machine     *regexp.Regexp
 	specific    *regexp.Regexp
 	explanation *regexp.Regexp
 }
@@ -115,10 +114,6 @@ func NewLinter(options ...Option) (*Linter, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, `unable to create directive pattern for "%s"`, d)
 		}
-		machine, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?\b`, quoted))
-		if err != nil {
-			return nil, errors.Wrapf(err, `unable to machine create directive pattern for "%s"`, d)
-		}
 		specific, err := regexp.Compile(fmt.Sprintf(`^\s*%s:(\S+)`, quoted))
 		if err != nil {
 			return nil, errors.Wrapf(err, `unable to specific create directive pattern for "%s"`, d)
@@ -129,7 +124,6 @@ func NewLinter(options ...Option) (*Linter, error) {
 		}
 		patterns = append(patterns, DirectivePatterns{
 			directive:   directive,
-			machine:     machine,
 			specific:    specific,
 			explanation: explanation,
 		})
