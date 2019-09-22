@@ -1,4 +1,4 @@
-// nolintlint provides a linter for ensure that all //nolint directives are followed by explanations
+// nolintlint provides a linter for ensure that all //nolintg directives are followed by explanations
 package nolintlint
 
 import (
@@ -131,7 +131,7 @@ func NewLinter(options ...Option) (*Linter, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, `unable to create directive pattern for "%s"`, d)
 		}
-		full, err := regexp.Compile(fmt.Sprintf(`^\s*%s(:\S+)?\s*(//.*)?\s*\n$`, quoted))
+		full, err := regexp.Compile(fmt.Sprintf(`^//\s*%s(:\S+)?\s*(//.*)?\s*\n?$`, quoted))
 		if err != nil {
 			return nil, errors.Wrapf(err, `unable to specific create full pattern for "%s"`, d)
 		}
@@ -197,8 +197,8 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 						issues = append(issues, NotMachine{BaseIssue: base})
 					}
 
-					fullMatches := p.full.FindStringSubmatch(text)
-					if !p.full.MatchString(text) {
+					fullMatches := p.full.FindStringSubmatch(c.List[0].Text)
+					if len(fullMatches) == 0 {
 						issues = append(issues, ParseError{BaseIssue: base})
 						continue
 					}

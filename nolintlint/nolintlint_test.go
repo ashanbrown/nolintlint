@@ -88,6 +88,17 @@ func foo() {
 		)
 	})
 
+	t.Run("multi-line comments don't confuse parser", func(t *testing.T) {
+		linter, _ := NewLinter()
+		expectIssues(t, linter, `
+package bar
+
+func foo() {
+  //nolint:test
+  // something else
+}`)
+	})
+
 }
 
 func expectIssues(t *testing.T, linter *Linter, contents string, issues ...string) {
