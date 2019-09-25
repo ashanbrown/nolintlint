@@ -1,4 +1,4 @@
-// nolintlint provides a linter for ensure that all //nolintg directives are followed by explanations
+// nolintlint provides a linter for ensure that all //nolint directives are followed by explanations
 package nolintlint
 
 import (
